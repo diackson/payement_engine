@@ -88,3 +88,246 @@ impl TransactionRecord {
           .find(|transaction| transaction.tx == tx)
     }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn transaction_deposit_test(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(1.2222_f64),
+    };
+    record_test.add_transaction(deposit);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 1.2222_f64);
+    assert_eq!(transaction.held, 0.0_f64);
+    assert_eq!(transaction.available, 1.2222_f64);
+    assert_eq!(transaction.locked, false);
+  }
+  #[test]
+  fn test_deposit_and_withdrawal(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(1.2222_f64),
+    };
+
+    let withdraw = TransactionInput {
+      transaction_type: TransactionTypes::Withdrawal,
+      client:1,
+      tx:2,
+      amount: Some(0.2222_f64),
+    };
+    record_test.add_transaction(deposit);
+    record_test.add_transaction(withdraw);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 1.000_f64);
+    assert_eq!(transaction.held, 0.0_f64);
+    assert_eq!(transaction.available, 1.000_f64);
+    assert_eq!(transaction.locked, false);
+  }
+
+#[test]
+  fn test_ignore_deposit_with_infity_amount(){
+    let mut record_test = TransactionRecord::new(1);
+
+      let deposit_1 = TransactionInput {
+        transaction_type: TransactionTypes::Deposit,
+        client:1,
+        tx:1,
+        amount: Some(f64::MAX),
+      };
+
+      let deposit_2 = TransactionInput {
+        transaction_type: TransactionTypes::Deposit,
+        client:1,
+        tx:2,
+        amount: Some(1.0),
+      };
+      record_test.add_transaction(deposit_1);
+      record_test.add_transaction(deposit_2);
+      let transaction = record_test.process_transactions();
+      assert_eq!(transaction.total, f64::MAX);
+      assert_eq!(transaction.held, 0.0_f64);
+      assert_eq!(transaction.available, f64::MAX);
+      assert_eq!(transaction.locked, false);
+  }
+
+  #[test]
+  fn test_ignore_withdrawal_more_than_available(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(1.0_f64),
+    };
+
+    let withdraw = TransactionInput {
+      transaction_type: TransactionTypes::Withdrawal,
+      client:1,
+      tx:2,
+      amount: Some(2.0_f64),
+    };
+    record_test.add_transaction(deposit);
+    record_test.add_transaction(withdraw);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 1.000_f64);
+    assert_eq!(transaction.held, 0.0_f64);
+    assert_eq!(transaction.available, 1.000_f64);
+    assert_eq!(transaction.locked, false);
+  }
+  #[test]
+  fn test_dispute(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit_1 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(10.0_f64),
+    };
+
+    let deposit_2 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:2,
+      amount: Some(2.0_f64),
+    };
+    let dispute = TransactionInput {
+      transaction_type: TransactionTypes::Dispute,
+      client:1,
+      tx:2,
+      amount: None,
+    };
+    record_test.add_transaction(deposit_1);
+    record_test.add_transaction(deposit_2);
+    record_test.add_transaction(dispute);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 12.000_f64);
+    assert_eq!(transaction.held, 2.0_f64);
+    assert_eq!(transaction.available, 10.000_f64);
+    assert_eq!(transaction.locked, false);
+  }
+  #[test]
+  fn test_resolve(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit_1 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(10.0_f64),
+    };
+
+    let deposit_2 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:2,
+      amount: Some(2.0_f64),
+    };
+    let dispute = TransactionInput {
+      transaction_type: TransactionTypes::Dispute,
+      client:1,
+      tx:2,
+      amount: None,
+    };
+    let resolve = TransactionInput {
+      transaction_type: TransactionTypes::Resolve,
+      client:1,
+      tx:2,
+      amount: None,
+    };
+    record_test.add_transaction(deposit_1);
+    record_test.add_transaction(deposit_2);
+    record_test.add_transaction(dispute);
+    record_test.add_transaction(resolve);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 12.000_f64);
+    assert_eq!(transaction.held, 0.0_f64);
+    assert_eq!(transaction.available, 12.000_f64);
+    assert_eq!(transaction.locked, false);
+  }
+  #[test]
+  fn test_chargeback(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit_1 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(10.0_f64),
+    };
+
+    let deposit_2 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:2,
+      amount: Some(2.0_f64),
+    };
+    let dispute = TransactionInput {
+      transaction_type: TransactionTypes::Dispute,
+      client:1,
+      tx:2,
+      amount: None,
+    };
+    let chargeback = TransactionInput {
+      transaction_type: TransactionTypes::Chargeback,
+      client:1,
+      tx:2,
+      amount: None,
+    };
+    record_test.add_transaction(deposit_1);
+    record_test.add_transaction(deposit_2);
+    record_test.add_transaction(dispute);
+    record_test.add_transaction(chargeback);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 10.000_f64);
+    assert_eq!(transaction.held, 0.0_f64);
+    assert_eq!(transaction.available, 10.000_f64);
+    assert_eq!(transaction.locked, true);
+  }
+
+  #[test]
+  fn test_ignore_chargeback_when_no_dispute(){
+    let mut record_test = TransactionRecord::new(1);
+
+    let deposit_1 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:1,
+      amount: Some(10.0_f64),
+    };
+
+    let deposit_2 = TransactionInput {
+      transaction_type: TransactionTypes::Deposit,
+      client:1,
+      tx:2,
+      amount: Some(2.0_f64),
+    };
+    let chargeback = TransactionInput {
+      transaction_type: TransactionTypes::Chargeback,
+      client:1,
+      tx:2,
+      amount: None,
+    };
+    record_test.add_transaction(deposit_1);
+    record_test.add_transaction(deposit_2);
+    record_test.add_transaction(chargeback);
+    let transaction = record_test.process_transactions();
+    assert_eq!(transaction.total, 12.000_f64);
+    assert_eq!(transaction.held, 0.0_f64);
+    assert_eq!(transaction.available, 12.000_f64);
+    assert_eq!(transaction.locked, false);
+  }
+}
