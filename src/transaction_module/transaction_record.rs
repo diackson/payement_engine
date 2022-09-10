@@ -36,25 +36,21 @@ impl TransactionRecord {
         TransactionTypes::Deposit => {
           if let Some(amount) = transaction.amount {
             operation.deposit(amount);
-            dbg!(operation);
           }
         }
         TransactionTypes::Withdrawal => {
           if let Some(amount) = transaction.amount {
             operation.withdraw(amount);
-            dbg!(operation);
           }
         }
         TransactionTypes::Dispute => {
           if let Some(existing_transaction) = self.find_transaction(transaction.tx) {
             operation.hold(existing_transaction.amount.unwrap());
-            dbg!(operation);
           }
         }
         TransactionTypes::Resolve => {
           if let Some(existing_transaction) = self.find_transaction(transaction.tx) {
             operation.release(existing_transaction.amount.unwrap());
-            dbg!(operation);
           }
         }
         TransactionTypes::Chargeback => {
@@ -62,7 +58,6 @@ impl TransactionRecord {
           if let Some(_existing_transaction_dispute) = self.find_transaction_dispute(transaction.tx) {
            if  let Some(existing_transaction) = self.find_transaction(transaction.tx){
               operation.chargeback(existing_transaction.amount.unwrap());
-              dbg!(operation);
             }
           }else {
             eprintln!("Charge back ignored, transaction is not under dispute");

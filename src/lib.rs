@@ -19,5 +19,6 @@ pub fn read_transaction_file<T: io::Read>(mut reader: csv::Reader<T>) -> Result<
       .map(|(_, transaction_process)| transaction_process.process_transactions())
       .try_for_each(|t| csv_writer.serialize(t))?;
 
+  
   Ok(())
 }
