@@ -21,7 +21,6 @@ impl TransactionOperationRecord {
     }
 
     pub fn get_operation_record(&self) -> &HashMap<u16, TransactionRecord> {
-      dbg!(&self.operation_record);
       &self.operation_record
     }
 }
