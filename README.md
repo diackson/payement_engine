@@ -13,7 +13,7 @@ of payments output the client account balances
 Clone the repository and then build and run the app payement engine.
 Enter the command
 
-`cargo run -- transactions.csv > accounts.csv`
+`cargo run -- data/transactions.csv > data/accounts.csv`
 
 ## Test
 
